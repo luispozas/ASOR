@@ -11,13 +11,9 @@ int main(int argc, char **argv){
   }
 
   //Ejecutamos el comando correspondiente a la entrada por argumentos
-  if (execvp(argv[1], argv + 1) == -1) {
-    printf("ERROR: No se ha ejecutado correctamente.\n");
-    return 0;
-  }
+  execvp(argv[1], argv + 1);
 
   printf("El comando terminó de ejecutarse.\n");
-
 
   return 0;
 }

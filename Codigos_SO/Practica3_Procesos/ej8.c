@@ -24,21 +24,24 @@ int main(int argc, char **argv){
       perror("fork");
       exit(-1);
     break;
+
+    //Proceso hijo
     case 0:;
       pid_t mi_sid = setsid(); //Creamos una nueva sesión
       printf("[Hijo] Proceso %i (Padre: %i)\n",getpid(),getppid());
-      int fd = open("/tmp/daemon.out",O_CREAT | O_RDWR, 00777);
-      int fderr = open("/tmp/daemon.err", O_CREAT | O_RDWR, 00777);
-      int null = open("/dev/null", O_CREAT | O_RDWR, 00777);
-      int fd2 = dup2(fd,2);
-      int fd3 = dup2(fderr, 1);
-      int fd4 = dup2(null, 0);
 
-      if (execvp(argv[1], argv + 1) == -1) {
-        printf("ERROR: No se ha ejecutado correctamente.\n");
-        exit(-1);
-      }
+      int fdout = open("/tmp/daemon.out",O_CREAT | O_RDWR, 0777);
+      int fderr = open("/tmp/daemon.err", O_CREAT | O_RDWR, 0777);
+      int fdin = open("/dev/null", O_CREAT | O_RDWR, 0777);
+
+      int fd2 = dup2(fdout,2);
+      int fd3 = dup2(fderr, 1);
+      int fd4 = dup2(fdin, 0);
+
+      execvp(argv[1], argv + 1);
       break;
+
+    //Proceso padre
     default:
         printf("[Padre] Proceso %i (Padre: %i)\n",getpid(),getppid());
         break;

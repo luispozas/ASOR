@@ -1,55 +1,48 @@
 #include <stdio.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <unistd.h>
 
-//export SLEEP_SECS="120"
 
-int main(int argc, char **argv) {
-	if (argc != 2) {
-    printf("ERROR: Introduce los segundos!\n");
-    return -1;
-  }
+int main(int argc, char* argv[]){
 
-  sigset_t set;
+	if(argc != 1){
+		printf("ERROR en los parametros del programa.\n");
+	}
+	printf("Pid del proceso: %d.\n", getpid());
 
-  //Inicializamos un conjunto de señales y añadimos las señales de int y tstp
-  sigemptyset(&set);
-  sigaddset(&set, SIGINT);
-  sigaddset(&set, SIGTSTP);
+	char *sleep_c = getenv("SLEEP_SECS");
+	int  sleep_i = 15;
+	if(sleep_c != NULL)
+		sleep_i = atoi(sleep_c);
 
-  //Protegemos la región de código contra la recepción de las señales
-  sigprocmask(SIG_BLOCK, &set, NULL);
+	printf("Se va a dormir el proceso durante %d seg.\n", sleep_i);
 
-  //Obtenemos la variable de entorno
-  char *sleep_secs = getenv("SLEEP_SECS");
-  int secs = atoi(sleep_secs);
-  printf("Se va a dormir el proceso durante %d segundo(s)\n", secs);
-  //Dormimos el proceso
-  sleep(secs);
+	//Inicializamos un conjunto de señales y añadimos senales SIGINT y SIGTSTP
+	sigset_t set;
+	sigemptyset(&set);
+	sigaddset(&set, SIGINT);
+	sigaddset(&set, SIGTSTP);
 
-  //Comprobamos las señales pendientes
-  sigset_t pending;
-  sigpending(&pending);
+	//Protegemos la region de codigo contra la recepcion de las senales.
+	sigprocmask(SIG_BLOCK, &set, NULL);
 
-  if (sigismember(&pending, SIGINT) == 1) {
-    printf("Se ha recibido la señal SIGINT\n");
+	sleep(sleep_i);
 
-    //Eliminamos la señal del conjunto anterior
-    sigdelset(&set, SIGINT);
+	//Comprobamos las señales pendientes
+	sigset_t set_pending;
+	sigpending(&set_pending);
 
-  } else {
-      printf("No se ha recibido la señal SIGINT\n");
-  }
-  if (sigismember(&pending, SIGTSTP) == 1) {
-    printf("Se ha recibido la señal SIGTSTP\n");
+	if(sigismember(&set_pending, SIGINT) == 1){
+		printf("Se ha recibido la señal SIGINT\n");
+	}
+	else{ printf("No se ha recibido la señal SIGINT\n");}
 
-    //Eliminamos la señal del conjunto anterior
-    sigdelset(&set, SIGTSTP);
-  } else {
-    printf("No se ha recibido la señal SIGTSTP\n");
-  }
+	if(sigismember(&set_pending, SIGTSTP) == 1){
+		printf("Se ha recibido la señal SIGTSTP\n");
+		sigprocmask(SIG_UNBLOCK, &set, NULL);
+	}
+	else{ printf("No se ha recibido la señal SIGTSTP\n");}
 
-  sigprocmask(SIG_UNBLOCK, &set, NULL);
-
-  return 0;
+	return 0;
 }
