@@ -1,89 +1,78 @@
-
-#include <stdio.h>
-//mkfifo
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <string.h>
-//Getenv
-#include <stdlib.h>
-
-
-#include <sys/time.h>
 #include <unistd.h>
+#include <sys/stat.h>
 #include <fcntl.h>
-#include <errno.h>
-//Se crean dos tuberías tuberia1 y tuberia2
-//El programa debe esperar hasya que hay datos listos para leer en alguna de ellas
-//Se debe escribir desde la tubería que se leyó y los datos leidos.
-
-int main(){
-
-  char *tuberia = "tuberia";
-	mkfifo(tuberia, 0644);
-
-	char *tuberia2 = "tuberia2";
-  mkfifo(tuberia2, 0644);
-
-  char buffer[257];
-
-  //Abrimos ambas tuberias, el parametro O_NONBLOCK sirve evitar el el archivo se abra para lectura y se bloquee para escritura.
-  int pipe1 = open(tuberia, O_RDONLY | O_NONBLOCK);
-  int pipe2 = open(tuberia2, O_RDONLY | O_NONBLOCK);
-
-  int cambios, pipeactual;
-
-  while (cambios != -1 ) {
-    fd_set conjunto;
-    FD_ZERO(&conjunto);
-    FD_SET(pipe1, &conjunto);
-    FD_SET(pipe2, &conjunto);
-    int numpipeactual;
-
-    cambios = select((pipe1 < pipe2) ? pipe2 + 1 : pipe1 + 1, &conjunto, NULL,NULL,NULL);
-
-    if (cambios > 0){
-      //Definimos en qué pipe nos encontramos.
-      if (FD_ISSET(pipe1, &conjunto)) {
-        numpipeactual = 1;
-        pipeactual = pipe1;
-      } else if (FD_ISSET(pipe2, &conjunto)) {
-        numpipeactual = 2;
-        pipeactual = pipe2;
-      }
-
-      ssize_t readsize = 256;
-			while (readsize == 256) {
-				readsize = read(pipeactual, buffer, 256);
-				buffer[readsize] = '\0';
-				printf("Tuberia %i: %s", numpipeactual, buffer);
-			}
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <sys/select.h>
 
 
-      if (readsize != 256 && numpipeactual == 1) {
-        close(pipe1);
-        pipe1 = open(tuberia, O_RDONLY | O_NONBLOCK);
-				if (pipe1 == -1) {
-					perror("Unable to open the second pipe");
-					close(pipe1);
-					close(pipe2);
-					return -1;
-				}
-      } else if(readsize != 256 && numpipeactual == 2) {
-        close(pipe2);
-        pipe2 = open(tuberia2, O_RDONLY | O_NONBLOCK);
-				if (pipe1 == -1) {
-					perror("Unable to open the second pipe");
-					close(pipe1);
-					close(pipe2);
-					return -1;
-				}
-      }
-    }//cambios > 0
+int main(int argc, char **argv){
 
-  }
+    char *tuberia1 = "tuberia1";
+    if(mkfifo(tuberia1, 0777) == -1){
+        printf("Error mkfifo primera tuberia.\n");
+        exit(EXIT_FAILURE);
+    }
 
+    char *tuberia2 = "tuberia2";
+    if(mkfifo(tuberia2, 0777) == -1){
+        printf("Error mkfifo segunda tuberia.\n");
+        exit(EXIT_FAILURE);
+    }
 
-  close(pipe1);
-  close(pipe2);
-  return 0;
+    int fd1 = open(tuberia1, O_RDONLY | O_NONBLOCK);
+    int fd2 = open(tuberia2, O_RDONLY | O_NONBLOCK);
+
+    if(fd1 == -1 || fd2 == -1){
+        printf("Error en la apertura de las tuberias.\n");
+        close(fd1);
+        close(fd2);
+        exit(EXIT_FAILURE);
+    }
+
+    char buffer[256]; //Buffer para los datos enviados
+    int cambios = 0;
+    fd_set set;
+    int size_read = 0;
+
+    while(cambios != -1){
+        FD_ZERO(&set);
+        FD_SET(fd1, &set);
+        FD_SET(fd2, &set);
+
+        cambios = select((fd1 > fd2)? fd1+1 : fd2+1, &set, NULL, NULL, NULL);
+
+        if(cambios){
+            if(FD_ISSET(fd1, &set)){
+                size_read = read(fd1, buffer, sizeof(buffer));
+                buffer[size_read] = '\0'; //Si el buffer anterior tiene mas tamaño relleno hay que despreciarlo
+                
+                if(size_read == 0){
+                    close(fd1);
+                    fd1 = open(tuberia1, O_RDONLY | O_NONBLOCK);
+                }
+                else printf("Tuberia 1: %s", buffer);
+            }
+            if(FD_ISSET(fd2, &set)){
+                size_read = read(fd2, buffer, sizeof(buffer));
+                buffer[size_read] = '\0';
+                
+                if(size_read == 0){
+                    close(fd2);
+                    fd2 = open(tuberia2, O_RDONLY | O_NONBLOCK);
+                }
+                else printf("Tuberia 2: %s", buffer);
+
+            }
+        }
+        else{
+            printf("Ningun dato nuevo.\n");
+        }
+
+    }
+
+    close(fd1);
+    close(fd2);
+    return 0;
 }
