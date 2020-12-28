@@ -63,13 +63,11 @@ int main(int argc, char **argv){
                     fd2 = open(tuberia2, O_RDONLY | O_NONBLOCK);
                 }
                 else printf("Tuberia 2: %s", buffer);
-
             }
         }
         else{
             printf("Ningun dato nuevo.\n");
         }
-
     }
 
     close(fd1);
