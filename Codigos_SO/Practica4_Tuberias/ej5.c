@@ -46,7 +46,7 @@ int main(int argc, char **argv){
         if(cambios){
             if(FD_ISSET(fd1, &set)){
                 size_read = read(fd1, buffer, sizeof(buffer));
-                buffer[size_read] = '\0'; //Si el buffer anterior tiene mas tamaño relleno hay que despreciarlo
+                buffer[size_read] = '\0'; //Si el buffer anterior tiene mas tamaño relleno, hay que despreciarlo
                 
                 if(size_read == 0){
                     close(fd1);
