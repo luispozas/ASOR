@@ -11,7 +11,7 @@ int main(int argc, char **argv){
 	struct addrinfo *result, *ptr;
 
 	char host[NI_MAXHOST];
-    char serv[NI_MAXSERV];
+   	char serv[NI_MAXSERV];
 
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family = AF_UNSPEC; //AF_INET para ipv4
@@ -22,5 +22,5 @@ int main(int argc, char **argv){
         getnameinfo(ptr->ai_addr, ptr->ai_addrlen, host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
         printf("%s -- %i -- %i\n", host, ptr->ai_family, ptr->ai_socktype);
     }
-    return 0;
+	return 0;
 }
